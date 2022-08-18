@@ -5,6 +5,7 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.Random;
 
 public class TankImageUtils {
 

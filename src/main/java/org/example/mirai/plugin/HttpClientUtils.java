@@ -1,17 +1,33 @@
 package org.example.mirai.plugin;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.message.data.Image;
+import net.mamoe.mirai.message.data.MessageChain;
+import net.mamoe.mirai.message.data.MessageChainBuilder;
+import net.mamoe.mirai.message.data.PlainText;
+import net.mamoe.mirai.utils.ExternalResource;
+import okhttp3.*;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class HttpClientUtils {
 
@@ -43,7 +59,7 @@ public class HttpClientUtils {
         String result = "";
         BufferedReader in = null;
         try {
-            String urlNameString = url ;
+            String urlNameString = url;
             URL realUrl = new URL(urlNameString);
             // 打开和URL之间的连接
             URLConnection connection = realUrl.openConnection();
@@ -83,5 +99,161 @@ public class HttpClientUtils {
         }
         return JSONObject.parseObject(result);
     }
+
+
+    public static JSONObject javtrailersSearch(String query) {
+        try {
+//            OkHttpClient client = new OkHttpClient().newBuilder()
+//                    .build();
+            OkHttpClient client = new OkHttpClient.Builder().proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7890)))
+                    .readTimeout(1000L, TimeUnit.MINUTES).build();
+            MediaType mediaType = MediaType.parse("text/plain");
+            RequestBody body = RequestBody.create(mediaType, "");
+            Request request = new Request.Builder()
+                    .url("https://javtrailers.com/api/search?query=" + query + "&page=0")
+                    .method("GET", null)
+                    .addHeader("authorization", "HAHA_ADAM_HAVE_TO_RESORT_TO_THIS#@!@#")
+                    .addHeader("Cookie", "auth.strategy=local; user-country=CN")
+                    .build();
+            Response response = client.newCall(request).execute();
+            String string = response.body().string();
+            JSONObject jsonObject = JSON.parseObject(string);
+            JSONArray results = jsonObject.getJSONArray("results");
+            return results.getJSONObject(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static JSONObject javtrailersVideo(String query) {
+        try {
+//            OkHttpClient client = new OkHttpClient().newBuilder()
+//                    .build();
+            OkHttpClient client = new OkHttpClient.Builder().proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7890)))
+                    .readTimeout(1000L, TimeUnit.MINUTES).build();
+            MediaType mediaType = MediaType.parse("text/plain");
+            RequestBody body = RequestBody.create(mediaType, "");
+            Request request = new Request.Builder()
+                    .url("https://javtrailers.com/api/video/" + query)
+                    .method("GET", null)
+                    .addHeader("authorization", "HAHA_ADAM_HAVE_TO_RESORT_TO_THIS#@!@#")
+                    .addHeader("Cookie", "auth.strategy=local; user-country=CN")
+                    .build();
+            Response response = client.newCall(request).execute();
+            String string = response.body().string();
+            JSONObject jsonObject = JSON.parseObject(string);
+            return jsonObject.getJSONObject("video");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static JSONObject getAvPerformer(String query, Group group) {
+        try {
+            OkHttpClient client = new OkHttpClient.Builder().proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7890)))
+                    .readTimeout(1000L, TimeUnit.MINUTES).build();
+            Request request = new Request.Builder()
+                    .url("https://actress.dmm.co.jp/-/search/=/searchstr=" + query + "/")
+                    .method("GET", null)
+                    .addHeader("cookie", "age_check_done=1;")
+                    .build();
+            Response response = client.newCall(request).execute();
+            String dataStr = response.body().string();
+            if (dataStr.indexOf("該当する女優は見つかりませんでした。") != -1) {
+                group.sendMessage("(˘•ω•˘)没找到：" + query);
+            } else {
+                dataStr = dataStr.substring(dataStr.indexOf("<div class=\"p-section-actressList\""), dataStr.lastIndexOf("<script>"));
+                final String[] split = dataStr.split("<li class=\"p-list-actress\"");
+                if (split.length == 2) {
+                    String id = split[1].substring(
+                            split[1].indexOf("href=\"") +
+                                    "href=\"".length(),
+                            split[1].indexOf("\" class=\"p-list-actress__link\""));
+//                    System.out.println(" 找到= id = " + id);
+                    getAvPerformerSon(id,group);
+                } else {
+                    StringBuffer stringBuffer = new StringBuffer();
+                    for (int i = 1; i < split.length; i++) {
+                        int starti = split[i].indexOf("<p class=\"p-list-actress__name\" data-v-6e1d5150=\"\">");
+                        String name = split[i].substring(
+                                starti + "<p class=\"p-list-actress__name\" data-v-6e1d5150=\"\">".length(),
+                                split[i].indexOf("</p>", starti + "<p class=\"p-list-actress__name\" data-v-6e1d5150=\"\">".length())
+                        ).trim();
+                        stringBuffer.append(name).append("、");
+                    }
+                    group.sendMessage("(˘•ω•˘)找到多个，请准确搜索：" + stringBuffer.toString());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            group.sendMessage("(˘•ω•˘) 网络错误");
+        }
+        return null;
+    }
+
+
+    public static JSONObject getAvPerformerSon(String query, Group group) {
+        try {
+            OkHttpClient client = new OkHttpClient.Builder().proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7890)))
+                    .readTimeout(1000L, TimeUnit.MINUTES).build();
+            MediaType mediaType = MediaType.parse("text/plain");
+            RequestBody body = RequestBody.create(mediaType, "");
+            Request request = new Request.Builder()
+                    .url("https://actress.dmm.co.jp" + query)
+                    .method("GET", null)
+                    .addHeader("cookie", "age_check_done=1; age_check_done=1; ckcy=1")
+                    .build();
+            Response response = client.newCall(request).execute();
+            String dataStr = response.body().string();
+            dataStr = dataStr.substring(dataStr.indexOf("<div class=\"p-box-productList\" "), dataStr.lastIndexOf("<div class=\"p-box-pagenationArea\" "));
+//            System.out.println("dataStr = " + dataStr);
+            String[] split = dataStr.split("<li class=\"p-list-product__item\" ");
+            MessageChainBuilder chainBuilder = new MessageChainBuilder();
+            for (int i = 1; i < split.length && i < 11; i++) {
+                String name = split[i].substring(
+                        split[i].indexOf("alt=\"") +
+                                "alt=\"".length(),
+                        split[i].indexOf("\" data-v-56711d8c=\"\"></span>"));
+                String img = split[i].substring(
+                        split[i].indexOf("<img src=\"") +
+                                "<img src=\"".length(),
+                        split[i].indexOf("\" alt=\""));
+                String date = split[i].substring(
+                        split[i].indexOf("<p class=\"p-list-product__item__releaseDate\" data-v-56711d8c=\"\">") +
+                                "<p class=\"p-list-product__item__releaseDate\" data-v-56711d8c=\"\">".length(),
+                        split[i].indexOf("発売")).trim();
+                String id = img;
+                if (id.indexOf("https://pics.dmm.co.jp/digital/video/")==-1){
+                    id = img.replace("https://pics.dmm.co.jp/mono/movie/adult/9", "");
+                }else {
+                    id = img.replace("https://pics.dmm.co.jp/digital/video/", "");
+                }
+                id = id.substring(0, id.lastIndexOf("/"));
+//                System.out.println("id = " + id);
+//                System.out.println("name = " + name);
+//                System.out.println("img = " + img);
+//                System.out.println("date = " + date);
+                BufferedImage image = ImageIO.read(new URL(img));
+                BufferedImage mainfunction = TankImageUtils.mainfunction(image);
+                InputStream inputStream = TankImageUtils.imageToStream(mainfunction);
+                Image uploadImage = ExternalResource.uploadAsImage(inputStream, group);
+                chainBuilder
+                        .append(new PlainText("\n番号：" + id + "\n"))
+                        .append(new PlainText("标题：" + name + "\n"))
+                        .append(new PlainText("图片预览：" + "\n"))
+                        .append(uploadImage)
+                        .append(new PlainText("发行日期：" + date + "\n"))
+                        .append(new PlainText("-------------\n"));
+            }
+            group.sendMessage(chainBuilder.build()).recallIn(120000L);
+        } catch (Exception e) {
+            e.printStackTrace();
+            group.sendMessage("(˘•ω•˘) 网络错误");
+        }
+        return null;
+    }
+
 
 }
