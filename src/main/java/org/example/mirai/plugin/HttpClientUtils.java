@@ -251,7 +251,7 @@ public class HttpClientUtils {
                         .append(uploadImage)
                         .append(new PlainText("发行日期：" + date + "\n")).build();
                 ForwardMessage.Node node = new ForwardMessage.Node(
-                        group.getOwner().getId(), (int) (new Date().getTime() / 1000), "腾讯qq", chain
+                        group.getOwner().getId(), (int) (new Date().getTime() / 1000), group.get(group.getOwner().getId()).queryProfile().getNickname(), chain
                 );
                 nodes.add(node);
             }
