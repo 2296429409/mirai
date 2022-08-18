@@ -4,10 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import net.mamoe.mirai.contact.Group;
-import net.mamoe.mirai.message.data.Image;
-import net.mamoe.mirai.message.data.MessageChain;
-import net.mamoe.mirai.message.data.MessageChainBuilder;
-import net.mamoe.mirai.message.data.PlainText;
+import net.mamoe.mirai.message.data.*;
 import net.mamoe.mirai.utils.ExternalResource;
 import okhttp3.*;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -27,6 +24,9 @@ import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class HttpClientUtils {
@@ -143,7 +143,7 @@ public class HttpClientUtils {
             Response response = client.newCall(request).execute();
             String string = response.body().string();
             JSONObject jsonObject = JSON.parseObject(string);
-            return jsonObject.getJSONObject("video");
+            return jsonObject;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -172,7 +172,7 @@ public class HttpClientUtils {
                                     "href=\"".length(),
                             split[1].indexOf("\" class=\"p-list-actress__link\""));
 //                    System.out.println(" 找到= id = " + id);
-                    getAvPerformerSon(id,group);
+                    getAvPerformerSon(id,group,query);
                 } else {
                     StringBuffer stringBuffer = new StringBuffer();
                     for (int i = 1; i < split.length; i++) {
@@ -189,12 +189,14 @@ public class HttpClientUtils {
         } catch (Exception e) {
             e.printStackTrace();
             group.sendMessage("(˘•ω•˘) 网络错误");
+        }finally {
+            JavaPluginMain.ispachi=0;
         }
         return null;
     }
 
 
-    public static JSONObject getAvPerformerSon(String query, Group group) {
+    public static JSONObject getAvPerformerSon(String query, Group group,String avName) {
         try {
             OkHttpClient client = new OkHttpClient.Builder().proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("127.0.0.1", 7890)))
                     .readTimeout(1000L, TimeUnit.MINUTES).build();
@@ -210,8 +212,15 @@ public class HttpClientUtils {
             dataStr = dataStr.substring(dataStr.indexOf("<div class=\"p-box-productList\" "), dataStr.lastIndexOf("<div class=\"p-box-pagenationArea\" "));
 //            System.out.println("dataStr = " + dataStr);
             String[] split = dataStr.split("<li class=\"p-list-product__item\" ");
-            MessageChainBuilder chainBuilder = new MessageChainBuilder();
-            for (int i = 1; i < split.length && i < 11; i++) {
+            List<ForwardMessage.Node> nodes = new ArrayList<>();
+            ForwardMessage.Node nodehead = new ForwardMessage.Node(
+                    group.getOwner().getId(),
+                    (int) (new Date().getTime() / 1000),
+                    "腾讯qq",
+                    new MessageChainBuilder().append(new PlainText(avName)).build()
+            );
+            nodes.add(nodehead);
+            for (int i = 1; i < split.length && i < 21; i++) {
                 String name = split[i].substring(
                         split[i].indexOf("alt=\"") +
                                 "alt=\"".length(),
@@ -231,23 +240,30 @@ public class HttpClientUtils {
                     id = img.replace("https://pics.dmm.co.jp/digital/video/", "");
                 }
                 id = id.substring(0, id.lastIndexOf("/"));
-//                System.out.println("id = " + id);
-//                System.out.println("name = " + name);
-//                System.out.println("img = " + img);
-//                System.out.println("date = " + date);
                 BufferedImage image = ImageIO.read(new URL(img));
                 BufferedImage mainfunction = TankImageUtils.mainfunction(image);
                 InputStream inputStream = TankImageUtils.imageToStream(mainfunction);
                 Image uploadImage = ExternalResource.uploadAsImage(inputStream, group);
-                chainBuilder
+                MessageChain chain = new MessageChainBuilder()
                         .append(new PlainText("\n番号：" + id + "\n"))
                         .append(new PlainText("标题：" + name + "\n"))
                         .append(new PlainText("图片预览：" + "\n"))
                         .append(uploadImage)
-                        .append(new PlainText("发行日期：" + date + "\n"))
-                        .append(new PlainText("-------------\n"));
+                        .append(new PlainText("发行日期：" + date + "\n")).build();
+                ForwardMessage.Node node = new ForwardMessage.Node(
+                        group.getOwner().getId(), (int) (new Date().getTime() / 1000), "腾讯qq", chain
+                );
+                nodes.add(node);
             }
-            group.sendMessage(chainBuilder.build()).recallIn(120000L);
+            ForwardMessage forwardMessage = new ForwardMessage(
+                    Arrays.asList(avName, avName, avName),
+                    "开冲", "真的假的", "真的！我在现场", "查看更多……",
+                    nodes
+            );
+            MessageChain chain = new MessageChainBuilder()
+                    .append(forwardMessage)
+                    .build();
+            group.sendMessage(chain).recallIn(120000L);
         } catch (Exception e) {
             e.printStackTrace();
             group.sendMessage("(˘•ω•˘) 网络错误");

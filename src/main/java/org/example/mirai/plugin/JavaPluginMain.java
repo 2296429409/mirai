@@ -56,6 +56,8 @@ public final class JavaPluginMain extends JavaPlugin {
 
     public static final String filew = "C:\\Users\\Administrator\\Desktop\\xz\\";
 
+    static volatile Integer ispachi = 0;
+
     @Override
     public void onEnable() {
 
@@ -120,6 +122,18 @@ public final class JavaPluginMain extends JavaPlugin {
             Long senderId = g.getSender().getId();
             if (msgstr.indexOf("#女优") == 0) {
                 String query = msgstr.replaceAll("^#女优", "").trim();
+                if ("".equals(query)) {
+                    return;
+                }
+                if (ispachi==1) {
+                    MessageChain chain = new MessageChainBuilder()
+                            .append(new At(senderId))
+                            .append(new PlainText("  (￣.￣)别急，网络繁忙中，稍后再试……"))
+                            .build();
+                    group.sendMessage(chain);
+                    return;
+                }
+                ispachi=1;
                 HttpClientUtils.getAvPerformer(query,group);
             }
             if (msgstr.indexOf("#番号") == 0) {
@@ -131,6 +145,11 @@ public final class JavaPluginMain extends JavaPlugin {
                 try {
                     query = query.replaceAll("-|\\s", "00");
                     JSONObject video = HttpClientUtils.javtrailersVideo(query);
+                    if (video == null) {
+                        group.sendMessage("(˘•ω•˘)网络错误：" + query);
+                        return;
+                    }
+                    video = video.getJSONObject("video");
                     if (video == null) {
                         group.sendMessage("(˘•ω•˘)没找到：" + query);
                         return;
