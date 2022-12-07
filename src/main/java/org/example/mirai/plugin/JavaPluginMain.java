@@ -106,7 +106,7 @@ public final class JavaPluginMain extends JavaPlugin {
                     return;
                 }
                 ForwardMessage forwardMessage = new ForwardMessage(
-                        Arrays.asList("真的假的啊", "真的！我在现场", "我擦，牛B啊"),
+                        Arrays.asList("真的假的", "真的！我在现场", "我擦，牛B啊"),
                         "震惊！广州一男子……", "真的假的", "真的！我在现场", "查看更多……",
                         nodes
                 );
