@@ -35,7 +35,7 @@ public final class JavaPluginMain extends JavaPlugin {
 //        new Schedule().run();
     }
 
-    private static String filepath = "C:\\Users\\Administrator\\Desktop\\mirai\\imgsc\\";
+    public static String filepath = "C:\\Users\\Administrator\\Desktop\\mirai\\imgsc\\";
 
     private static String imgxzlog = "C:\\Users\\Administrator\\Desktop\\xzlog\\%s.txt";
 
@@ -66,6 +66,9 @@ public final class JavaPluginMain extends JavaPlugin {
 //                schedule = "1";
 ////                new Schedule().run(g);
 //            }
+            if (g.getMessage().contentToString().equals("#帮助")){
+                HelpMain.help(g.getGroup());
+            }
             if (g.getMessage().contentToString().startsWith("#证据")) {
                 List<SingleMessage> singleMessages = null;
                 At at = null;
@@ -106,8 +109,8 @@ public final class JavaPluginMain extends JavaPlugin {
                     return;
                 }
                 ForwardMessage forwardMessage = new ForwardMessage(
-                        Arrays.asList("真的假的", "真的！我在现场", "我擦，牛B啊"),
-                        "震惊！广州一男子居然……", "这真的假的", "真的！我在现场", "查看更多……",
+                        Arrays.asList("真的假的啊", "真的！我在现场", "我擦，牛B啊"),
+                        "震惊！广州一男子……", "真的假的", "真的！我在现场", "查看更多……",
                         nodes
                 );
                 MessageChain chain = new MessageChainBuilder()
@@ -230,6 +233,9 @@ public final class JavaPluginMain extends JavaPlugin {
             //监听好友消息
             if (f.getSender().getId() == yourQQNumber) {
                 String msgstr = f.getMessage().contentToString();
+                if (msgstr.equals("#帮助")){
+                    HelpMain.help(f.getFriend());
+                }
                 //图片
                 if (MiraiConfig.imgConfig.containsKey(msgstr)) {
                     File file = new File(filepath + MiraiConfig.imgConfig.get(msgstr));
